@@ -17,12 +17,13 @@ Preview binds to http://127.0.0.1:4173. Set PORT to choose another port.
 
 Repository: https://github.com/afterdarksys/opensah.com
 
-The checked-in blunix website uses Cloudflare Pages. This site supports the same hosting model:
+The site is the static-assets Worker `opensah-com-site`, deployed with Cloudflare's `cf` CLI (`cf` 1.0.0-beta.32):
 
-1. Authenticate Wrangler to the intended Cloudflare account.
-2. Create the Pages project once: `wrangler pages project create opensah-com --production-branch=main`.
-3. Run `scripts/deploy-pages.sh`.
-4. Attach `opensah.com` as a custom domain in that Pages project and verify DNS and TLS.
+1. `npm ci` installs the pinned `cf` and the Wrangler it builds with (4.162.0: 4.163.0 writes Build Output v1, which this `cf` cannot read; bump both together).
+2. Authenticate once: `npx cf auth login` (check with `npx cf auth whoami`).
+3. `npm run deploy` runs `scripts/deploy.sh`: the site check, a copy of `site/` without dot-files into `dist/`, then `cf deploy`. `npm run deploy -- --dry-run` builds and validates without uploading.
+
+`cloudflare.config.ts` holds the Worker: name, compatibility date, the zone routes `opensah.com/*` and `www.opensah.com/*`, workers.dev and preview URLs, and asset handling (`auto-trailing-slash` HTML, `site/404.html` for unknown paths). `wrangler.config.ts` only names `dist/` as the asset directory. `site/_headers` and `site/_redirects` apply as before. The Worker routes are what serve the site: they run in front of the proxied DNS records, which still point at the Pages project `opensah-com` and its custom domains. Removing the routes from the config and redeploying falls back to Pages, which is the rollback; Pages only updates through a direct upload, so its content is older.
 
 The GitHub repository contains source; a push alone does not publish a deployment. No credential belongs in this repository.
 
